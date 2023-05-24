@@ -12,16 +12,17 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
 
-function compose_email() {
+function compose_email(recipients, subject, body) {
+  console.log(recipients)
 
   // Show compose view and hide other views
   document.querySelector('#emails-view').style.display = 'none';
   document.querySelector('#compose-view').style.display = 'block';
 
   // Clear out composition fields
-  document.querySelector('#compose-recipients').value = '';
-  document.querySelector('#compose-subject').value = '';
-  document.querySelector('#compose-body').value = '';
+  document.querySelector('#compose-recipients').value = recipients||'';
+  document.querySelector('#compose-subject').value = subject||'';
+  document.querySelector('#compose-body').value = body||'';
 }
 
 function load_mailbox(mailbox) {
@@ -127,6 +128,7 @@ function email(id) {
         <p id='body'>${email.body}</p>
         <p id='timestamp'> Sent on ${email.timestamp}</p>
         <button id='archive' class="btn btn-sm btn-outline-primary"> Archive </button>
+        <button id='reply' class="btn btn-sm btn-outline-primary"> Reply </button>
       </div>
       `
     // Email is archived
@@ -139,6 +141,7 @@ function email(id) {
         <p id='body'>${email.body}</p>
         <p id='timestamp'> Sent on ${email.timestamp}</p>
         <button id='archive' class="btn btn-sm btn-outline-primary"> Un-Archive </button>
+        <button id='reply' class="btn btn-sm btn-outline-primary"> Reply </button>
       </div>
     `}
     document.querySelector('#email-view').innerHTML = '';
@@ -150,6 +153,9 @@ function email(id) {
     } else {
       document.querySelector(`#archive`).addEventListener('click', () => unarchive(`${email.id}`));
     }
+
+    // Run Reply function when button is pressed
+    document.querySelector(`#reply`).addEventListener('click', () => reply(email.id));
   })
   .catch(error => {
     console.error('Error fetching email:', error);
@@ -195,4 +201,22 @@ function unarchive(id){
   setTimeout(function() {
     mailbox('inbox');
   }, 500);
+}
+
+function reply(id){
+  fetch(`/emails/${id}`)
+  .then(response => response.json())
+  .then(email => {
+    // Check if subject already starts with "Re:"
+    let subject = email.subject;
+    if (!subject.startsWith("Re:")) {
+      subject = `Re: ${subject}`;
+    }
+
+    // Pre-fill the form
+    compose_email(email.sender, subject, `On ${email.timestamp} ${email.sender} wrote: ${email.body}`);
+  })
+  .catch(error => {
+    console.error('Error fetching email:', error);
+  });
 }
